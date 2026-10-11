@@ -1,0 +1,61 @@
+Fichier concerné :
+scripts/_tiled/pool.py
+
+Idée : changement de structure / priorité globale d'update
+
+[L 42-73]
+Problème observé :
+Le système actuel trie chaque liste localement, puis traite récursivement `objects_focus`.
+Cela donne une priorité locale par sous-liste, mais pas une priorité globale entre tous les objets encore en attente.
+
+Modification proposée :
+Remplacer le traitement récursif par une file d'attente unique triée par `(update_priority, objectid)`.
+Les objets ajoutés via `objects_focus` rejoignent la même file d'attente, donc ils concurrencent les autres objets avec la même règle de priorité.
+
+Bloc proposé :
+
+def updates(self):
+    self.prerenders_layers = {}
+    self.updated_object = []
+
+    pending = list(self.objects.keys())
+    queued = set(pending)
+
+    def priority_key(objectid):
+        obj = self.objects.get(objectid)
+        return (
+            getattr(obj, "update_priority", 100),
+            objectid
+        )
+
+    while pending:
+        pending.sort(key=priority_key)
+        objectid = pending.pop(0)
+        queued.discard(objectid)
+
+        if objectid in self.updated_object:
+            continue
+
+        self.updated_object.append(objectid)
+
+        focused_objects = self.objects_focus.pop(objectid, [])
+        for focused_id in focused_objects:
+            if focused_id in self.updated_object:
+                continue
+            if focused_id in queued:
+                continue
+            if not self.objects.get(focused_id):
+                continue
+
+            pending.append(focused_id)
+            queued.add(focused_id)
+
+        obj = self.objects.get(objectid)
+        if obj:
+            obj.update()
+
+À vérifier après modification :
+- tester ZipLine avec `add_preceding_obj(player, self.tiled_id)`
+- tester les objets focus qui modifient `objects_focus` pendant leur update
+- vérifier qu'un objet mort/supprimé pendant la frame est ignoré proprement
+- si les performances deviennent importantes, remplacer le tri répété par `heapq`

@@ -1,0 +1,65 @@
+Fichier concerné :
+scripts/objects/player/util.py
+
+Idée : correction / clarification de structure
+
+[L 46-103]
+Problème observé :
+Deux fonctions portent le même nom :
+player_check_object_collision_platform(...)
+
+La seconde définition remplace la première au chargement du module. Le comportement booléen simple des lignes 46-53 devient donc inaccessible.
+
+Modification proposée :
+- garder une seule fonction publique `player_check_object_collision_platform`
+- si les deux comportements sont utiles, renommer la première en helper privé explicite
+
+Bloc proposé :
+
+def _player_check_object_collision_floor(self:TiledObjectEntity, player:PlayerBase, entity_hitbox:pygame.Rect):
+    if check_object_collision_platform(self, entity_hitbox, player, player.hitbox, True):
+        player.control_lock = 0
+        player.MODE = G_MODE_FLOOR
+        __player_check_flailing__(self, player, entity_hitbox)
+        return True
+
+    return False
+
+
+def player_check_object_collision_platform(self:TiledObjectEntity, player:PlayerBase, entity_hitbox:pygame.Rect):
+    side = check_object_collision_box(self, entity_hitbox, player, player.hitbox, True)
+    if side == C_NONE:
+        return C_NONE
+
+    if side == C_TOP:
+        player.control_lock = 0
+        player.MODE = G_MODE_FLOOR
+        __player_check_flailing__(self, player, entity_hitbox)
+        return C_TOP
+
+    elif side == C_LEFT:
+        player.control_lock = 0
+
+        if player.input_left and player.ground:
+            player.ground_speed = -0x8000
+            player.position.x &= 0xFFFF0000
+
+        return C_LEFT
+
+    elif side == C_RIGHT:
+        player.control_lock = 0
+
+        if player.input_right and player.ground:
+            player.ground_speed = 0x8000
+
+        return C_RIGHT
+
+    elif side == C_BOTTOM:
+        return C_BOTTOM
+
+    return C_NONE
+
+À vérifier après modification :
+- rechercher les futurs usages de `_player_check_object_collision_floor`
+- tester un objet plateforme
+- tester les collisions gauche/droite/dessous sur un objet solide

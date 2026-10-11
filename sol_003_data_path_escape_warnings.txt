@@ -1,0 +1,37 @@
+Fichiers concernés :
+scripts/base.py
+scripts/game/__init__.py
+scripts/_background/simple.py
+
+Idée : correction / portabilité des chemins et nettoyage des warnings Python
+
+[L scripts/base.py 38]
+Problème observé :
+La chaîne contient des backslashes Windows. Python signale un `SyntaxWarning: invalid escape sequence`.
+
+Bloc proposé :
+
+self.dev_font = load_datafont_from_animation(load_RSDKv5Animations("Data/Sprites/Dev/Font.bin"), "Font", ASCII_TABLE)
+
+[L scripts/game/__init__.py 49]
+Problème observé :
+Même problème de backslash dans un chemin de données.
+
+Bloc proposé :
+
+general.musics = load_musics_from_jsonfile("Data/Game/musics.json")
+
+[L scripts/_background/simple.py 99-101]
+Problème observé :
+Les exemples échappent `/` avec `\/`, ce qui déclenche aussi un warning inutile.
+
+Bloc proposé :
+
+            """- example 1: "palette": {"palfile": "./path/file.pal"}   """
+            +"\n"+
+            """- example 2: "palette": {"imgfile": "./path/file.gif"}   """
+
+À vérifier après modification :
+- lancer `python3 -m compileall -q .`
+- vérifier que les assets se chargent toujours
+- garder une convention unique : chemins de données avec `/`, même sur Windows
