@@ -1,19 +1,24 @@
+# Priorité globale d'update des objets
+
 Fichier concerné :
-scripts/_tiled/pool.py
+`scripts/_tiled/pool.py`
 
 Idée : changement de structure / priorité globale d'update
 
+## Problème observé
+
 [L 42-73]
-Problème observé :
+
 Le système actuel trie chaque liste localement, puis traite récursivement `objects_focus`.
 Cela donne une priorité locale par sous-liste, mais pas une priorité globale entre tous les objets encore en attente.
 
-Modification proposée :
+## Modification proposée
+
 Remplacer le traitement récursif par une file d'attente unique triée par `(update_priority, objectid)`.
+
 Les objets ajoutés via `objects_focus` rejoignent la même file d'attente, donc ils concurrencent les autres objets avec la même règle de priorité.
 
-Bloc proposé :
-
+```python
 def updates(self):
     self.prerenders_layers = {}
     self.updated_object = []
@@ -53,8 +58,10 @@ def updates(self):
         obj = self.objects.get(objectid)
         if obj:
             obj.update()
+```
 
-À vérifier après modification :
+## À vérifier après modification
+
 - tester ZipLine avec `add_preceding_obj(player, self.tiled_id)`
 - tester les objets focus qui modifient `objects_focus` pendant leur update
 - vérifier qu'un objet mort/supprimé pendant la frame est ignoré proprement

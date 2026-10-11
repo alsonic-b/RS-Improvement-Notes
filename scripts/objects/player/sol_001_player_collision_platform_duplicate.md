@@ -1,21 +1,26 @@
+# Correction de collision plateforme dupliquée
+
 Fichier concerné :
-scripts/objects/player/util.py
+`scripts/objects/player/util.py`
 
 Idée : correction / clarification de structure
 
+## Problème observé
+
 [L 46-103]
-Problème observé :
+
 Deux fonctions portent le même nom :
-player_check_object_collision_platform(...)
+
+`player_check_object_collision_platform(...)`
 
 La seconde définition remplace la première au chargement du module. Le comportement booléen simple des lignes 46-53 devient donc inaccessible.
 
-Modification proposée :
+## Modification proposée
+
 - garder une seule fonction publique `player_check_object_collision_platform`
 - si les deux comportements sont utiles, renommer la première en helper privé explicite
 
-Bloc proposé :
-
+```python
 def _player_check_object_collision_floor(self:TiledObjectEntity, player:PlayerBase, entity_hitbox:pygame.Rect):
     if check_object_collision_platform(self, entity_hitbox, player, player.hitbox, True):
         player.control_lock = 0
@@ -58,8 +63,10 @@ def player_check_object_collision_platform(self:TiledObjectEntity, player:Player
         return C_BOTTOM
 
     return C_NONE
+```
 
-À vérifier après modification :
+## À vérifier après modification
+
 - rechercher les futurs usages de `_player_check_object_collision_floor`
 - tester un objet plateforme
 - tester les collisions gauche/droite/dessous sur un objet solide
